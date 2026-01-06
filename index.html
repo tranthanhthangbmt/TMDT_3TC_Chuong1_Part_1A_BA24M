@@ -735,13 +735,22 @@ Duration: 3:34
       videoPlayOverlay.onclick = triggerPlay;
       bigPlayBtn.onclick = triggerPlay;
 
-      // Play
+      // Play Logic with Muted Fallback
       try {
         await videoElement.play();
       } catch (e) {
-        console.warn("Auto-play failed (Mobile restrictions):", e);
-        // Show Manual Play Button
-        videoPlayOverlay.classList.add('visible');
+        console.warn("Autoplay with sound failed. Retrying muted...", e);
+        try {
+          // Mobile Browser often allow autoplay if MUTED
+          videoElement.muted = true;
+          await videoElement.play();
+          console.log("Muted autoplay started.");
+          videoPlayOverlay.classList.remove('visible'); // Success! Hide overlay
+        } catch (errMuted) {
+          console.error("Muted autoplay also failed.", errMuted);
+          // Only NOW show the big manual play button
+          videoPlayOverlay.classList.add('visible');
+        }
       }
 
       // Native Auto-Advance
