@@ -352,21 +352,7 @@
       </div>
     </div>
 
-    <!-- Video Overlay -->
-    <div id="video-overlay" class="video-overlay">
-      <div class="video-container">
-        <!-- Native Video Element -->
-        <video id="video-element" controls playsinline disablepictureinpicture controlsList="nodownload"></video>
 
-        <!-- Manual Play Overlay -->
-        <div id="video-play-overlay" class="video-play-overlay">
-          <button id="big-play-btn" class="big-play-btn">▶</button>
-        </div>
-      </div>
-      <div class="video-controls">
-        <button id="close-video-btn" class="close-video-btn">✅ Đã xem xong - Slide tiếp theo ⏩</button>
-      </div>
-    </div>
 
     <div class="bottom-bar">
       <div class="timeline-container">
@@ -392,6 +378,22 @@
 
     <!-- Audio Element ẩn -->
     <audio id="slide-audio" preload="auto"></audio>
+  </div>
+
+  <!-- Video Overlay (MOVED OUTSIDE) -->
+  <div id="video-overlay" class="video-overlay">
+    <div class="video-container">
+      <!-- Native Video Element -->
+      <video id="video-element" controls playsinline disablepictureinpicture controlsList="nodownload"></video>
+
+      <!-- Manual Play Overlay -->
+      <div id="video-play-overlay" class="video-play-overlay">
+        <button id="big-play-btn" class="big-play-btn">▶</button>
+      </div>
+    </div>
+    <div class="video-controls">
+      <button id="close-video-btn" class="close-video-btn">✅ Đã xem xong - Slide tiếp theo ⏩</button>
+    </div>
   </div>
 
   <script>
