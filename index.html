@@ -305,74 +305,56 @@
       font-weight: bold;
       font-size: 14px;
     }
-
-    .video-fallback-link {
-      position: absolute;
-      bottom: 70px;
-      /* Above control bar */
-      left: 50%;
-      transform: translateX(-50%);
-      color: #fff;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 10px 20px;
-      border-radius: 20px;
-      text-decoration: none;
-      font-size: 14px;
-      z-index: 20001;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      transition: background 0.2s;
-    }
-
-    .video-fallback-link:hover {
-      background: rgba(0, 0, 0, 0.9);
-      text-decoration: underline;
-    }
   </style>
-  <div id="loading-text" class="loading-text">Đang tải dữ liệu...</div>
-  </div>
-  </div>
+</head>
 
-  <!-- Video Overlay -->
-  <div id="video-overlay" class="video-overlay">
-    <div class="video-container">
-      <!-- Added allow="autoplay" and other permissions -->
-      <iframe id="video-iframe" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-      <div id="video-countdown" class="video-countdown"></div>
-
-      <!-- FALLBACK LINK: For when Iframe is blocked -->
-      <a id="video-fallback-link" class="video-fallback-link" href="#" target="_blank">
-        ⚠️ Video không chạy? Bấm để xem tại Tab mới ↗️
-      </a>
-    </div>
-    <div class="video-controls">
-      <button id="close-video-btn" class="close-video-btn">✅ Đã xem xong - Slide tiếp theo ⏩</button>
-    </div>
-  </div>
-
-  <div class="bottom-bar">
-    <div class="timeline-container">
-      <div id="progress-bar-wrapper" class="progress-bar-wrapper">
-        <div id="progress-bar" class="progress-bar"></div>
-      </div>
-      <div class="time-display">
-        <span id="current-time">00:00</span>
-        <span id="total-duration">00:00</span>
+<body>
+  <div id="player-container" class="player-container">
+    <div id="slide-viewer" class="slide-viewer" aria-label="Khu vực hiển thị slide" tabindex="0">
+      <img id="slide-image" src="" alt="Slide" />
+      <!-- Loading Overlay -->
+      <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <div id="loading-text" class="loading-text">Đang tải dữ liệu...</div>
       </div>
     </div>
 
-    <div class="controls">
-      <button id="prev-btn" title="Slide trước">⏪</button>
-      <button id="play-pause-btn" title="Phát/Tạm dừng">▶️</button>
-      <div id="slide-counter" class="slide-counter">— / —</div>
-      <button id="next-btn" title="Slide tiếp theo">⏩</button>
-      <button id="autoscroll-btn" title="Bật/Tắt Tự cuộn">🔄</button>
-      <button id="scale-btn" title="Chế độ xem">⛶</button>
-      <button id="fullscreen-btn" title="Toàn màn hình">🖼️</button>
+    <!-- Video Overlay -->
+    <div id="video-overlay" class="video-overlay">
+      <div class="video-container">
+        <!-- Added allow="autoplay" and other permissions -->
+        <iframe id="video-iframe" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        <div id="video-countdown" class="video-countdown"></div>
+      </div>
+      <div class="video-controls">
+        <button id="close-video-btn" class="close-video-btn">✅ Đã xem xong - Slide tiếp theo ⏩</button>
+      </div>
     </div>
-  </div>
 
-  <!-- Audio Element ẩn -->
-  <audio id="slide-audio" preload="auto"></audio>
+    <div class="bottom-bar">
+      <div class="timeline-container">
+        <div id="progress-bar-wrapper" class="progress-bar-wrapper">
+          <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <div class="time-display">
+          <span id="current-time">00:00</span>
+          <span id="total-duration">00:00</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="prev-btn" title="Slide trước">⏪</button>
+        <button id="play-pause-btn" title="Phát/Tạm dừng">▶️</button>
+        <div id="slide-counter" class="slide-counter">— / —</div>
+        <button id="next-btn" title="Slide tiếp theo">⏩</button>
+        <button id="autoscroll-btn" title="Bật/Tắt Tự cuộn">🔄</button>
+        <button id="scale-btn" title="Chế độ xem">⛶</button>
+        <button id="fullscreen-btn" title="Toàn màn hình">🖼️</button>
+      </div>
+    </div>
+
+    <!-- Audio Element ẩn -->
+    <audio id="slide-audio" preload="auto"></audio>
   </div>
 
   <script>
@@ -496,7 +478,6 @@
     const videoIframe = document.getElementById('video-iframe');
     const closeVideoBtn = document.getElementById('close-video-btn');
     const videoCountdown = document.getElementById('video-countdown');
-    const videoFallbackLink = document.getElementById('video-fallback-link');
     const videoMap = new Map();
 
     const autoscrollBtn = document.getElementById('autoscroll-btn');
@@ -528,8 +509,27 @@
     }
 
     /* ================= VIDEO LOGIC ================= */
-    // REMOVED HARDCODED FALLBACK to prevent errors when file is missing.
-    // Nếu không có videoLink.txt, web sẽ chạy slide bình thường thay vì hiện video ảo.
+    const FALLBACK_VIDEO_DATA = `
+Slide 2: 
+Winning the Zero Moment of Truth - Changing the Rulebook_vi
+https://drive.google.com/file/d/1_JRpzGeHDgZy1UaCZcXjkIq33YMAq2bD/view?usp=sharing
+Duration: 2:05
+
+Slide 8:
+Omni-Channel vs. Multi-Channel
+https://drive.google.com/file/d/1bySV7fYfvzriFyh1jK0zbRqbzro9YBjC/view?usp=drive_link
+Duration: 1:49
+
+Slide 16:
+Push Strategy vs Pull Strategy
+https://drive.google.com/file/d/1B_lzX69T0MR-wU4PZ2idNWi1gmK0P4GJ/view?usp=drive_link
+Duration: 3:00
+
+Slide 19:
+Learn how the Just Walk Out technology experience works
+https://drive.google.com/file/d/1kF-aL0RIeFNyURWk7QkCaTOTwvnRcLDX/view?usp=drive_link
+Duration: 3:34
+    `;
 
     function parseVideoData(text) {
       const lines = text.split('\n');
@@ -551,35 +551,23 @@
         else if (currentSlide !== null) {
           if (line.startsWith('http')) {
             let url = line;
-
-            // OPTIMIZATION: Extract Clean ID from Google Drive Link
-            // Converts "view?usp=sharing", "drive-viewer/...", etc. to simple "/preview"
-            const idMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-            if (idMatch && idMatch[1]) {
-              url = `https://drive.google.com/file/d/${idMatch[1]}/preview`;
-            } else if (url.includes('drive.google.com') && url.includes('id=')) {
-              // Handle parameters like ?id=XXX
-              const idParam = new URL(url).searchParams.get('id');
-              if (idParam) {
-                url = `https://drive.google.com/file/d/${idParam}/preview`;
-              }
-            } else if (url.includes('drive.google.com') && url.includes('/view')) {
-              // Fallback for standard links without explicit ID pattern
+            if (url.includes('drive.google.com') && url.includes('/view')) {
               url = url.replace('/view', '/preview');
             }
-
             const data = videoMap.get(currentSlide);
             if (data) data.url = url;
           }
           else if (line.match(/^Duration[:\s]+/i)) {
             const data = videoMap.get(currentSlide);
             if (data) {
+              // Try "1:58"
               const timeMatch = line.match(/Duration[:\s]+(\d+):(\d+)/i);
               if (timeMatch) {
                 const m = parseInt(timeMatch[1]);
                 const s = parseInt(timeMatch[2]);
                 data.duration = m * 60 + s;
               } else {
+                // Try "118"
                 const secMatch = line.match(/Duration[:\s]+(\d+)/i);
                 if (secMatch) {
                   data.duration = parseInt(secMatch[1]);
@@ -588,6 +576,7 @@
             }
           }
           else {
+            // Treat other lines as potential title if not yet set
             const data = videoMap.get(currentSlide);
             if (data && !data.title && !line.startsWith('Duration')) {
               data.title = line;
@@ -601,16 +590,12 @@
     async function loadVideoLinks() {
       try {
         const response = await fetch('videoLink.txt');
-        // Nếu lỗi 404 (file chưa upload), response.ok sẽ là false
-        if (!response.ok) {
-          console.warn(`videoLink.txt not found (${response.status}). Skipping video integration.`);
-          return;
-        }
+        if (!response.ok) throw new Error("Cannot fetch videoLink.txt");
         const text = await response.text();
         parseVideoData(text);
       } catch (e) {
-        console.warn("Error loading videoLink.txt:", e);
-        // Không dùng fallback nữa để tránh làm phiền người dùng
+        console.warn("Fetch failed (likely CORS), using fallback data:", e);
+        parseVideoData(FALLBACK_VIDEO_DATA);
       }
     }
 
@@ -620,34 +605,22 @@
       let url = videoData.url;
       const duration = videoData.duration;
 
-      // FORCE HTTPS
-      if (url.startsWith('http:')) {
-        url = url.replace('http:', 'https:');
-      }
-
       console.log("Playing Video:", url, "Duration:", duration);
 
-      // 1. Prepare clean URL for Fallback Link (View Mode)
-      // Extract ID to build a clean view link
-      let fallbackUrl = url;
-      const idMatch = fallbackUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-      if (idMatch && idMatch[1]) {
-        fallbackUrl = `https://drive.google.com/file/d/${idMatch[1]}/view?usp=sharing`;
-      } else {
-        // Just in case no ID found, revert /preview to /view for fallback link
-        fallbackUrl = fallbackUrl.replace('/preview', '/view');
-      }
-      videoFallbackLink.href = fallbackUrl;
-
-      // 2. Prepare Embed URL (Preview Mode)
       // Auto-append params
-      // Because we already standardized the URL in Parse, just check for query params
-      if (url.includes('drive.google.com/file/d/')) {
-        if (!url.includes('/preview')) {
-          if (url.includes('/view')) url = url.replace(/\/view.*/, '/preview');
-          else url += '/preview';
+      try {
+        const urlObj = new URL(url);
+        if (urlObj.hostname.includes('drive.google.com') && urlObj.pathname.includes('/view')) {
+          urlObj.pathname = urlObj.pathname.replace('/view', '/preview');
         }
-        if (!url.includes('autoplay=')) url += '?autoplay=1';
+        urlObj.searchParams.set('autoplay', '1');
+        url = urlObj.toString();
+      } catch (e) {
+        if (url.includes('drive.google.com') && url.includes('/view')) {
+          url = url.replace('/view', '/preview');
+        }
+        if (url.includes('?')) url += '&autoplay=1';
+        else url += '?autoplay=1';
       }
 
       videoIframe.src = url;
@@ -939,6 +912,6 @@
       showSlide(currentSlideIndex);
     });
   </script>
-  </body>
+</body>
 
 </html>
