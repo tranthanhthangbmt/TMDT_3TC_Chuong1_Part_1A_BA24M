@@ -149,12 +149,13 @@
     .controls {
       display: flex;
       justify-content: center;
-      /* Center buttons */
       align-items: center;
-      gap: 4px;
-      /* Reduce gap slightly to squeeze them in */
+      gap: 2px;
       width: 100%;
-      /* Ensure it spans full width to allow centering */
+      padding: 0 20%;
+      /* Squeeze content to the center */
+      box-sizing: border-box;
+      /* Ensure padding is included in width */
     }
 
     .controls button {
@@ -716,6 +717,17 @@ Duration: 3:34
 
       slideAudio.pause();
       cancelAnimationFrame(scrollAnimationId);
+
+      // Setup Manual Play Interaction
+      const triggerPlay = async () => {
+        try {
+          await videoElement.play();
+          videoPlayOverlay.classList.remove('visible');
+        } catch (e) { console.error("Play failed", e); }
+      };
+
+      videoPlayOverlay.onclick = triggerPlay;
+      bigPlayBtn.onclick = triggerPlay;
 
       // Play
       try {
