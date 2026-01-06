@@ -260,20 +260,27 @@
       justify-content: center;
     }
 
-    .video-container iframe {
-      width: 100%;
-      height: 100%;
+    .video-container iframe,
+    .video-container video {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
       border: none;
+      background: #000;
+      outline: none;
     }
 
     .video-controls {
-      height: 60px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: #111;
-      color: #fff;
-      border-top: 1px solid #333;
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: auto;
+      height: auto;
+      background: transparent;
+      border: none;
+      z-index: 20002;
+      pointer-events: auto;
+      /* Ensure clickable */
     }
 
     .close-video-btn {
@@ -293,18 +300,6 @@
       background: #218838;
       transform: scale(1.05);
     }
-
-    .video-countdown {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: rgba(0, 0, 0, 0.6);
-      color: #fff;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-weight: bold;
-      font-size: 14px;
-    }
   </style>
 </head>
 
@@ -322,9 +317,9 @@
     <!-- Video Overlay -->
     <div id="video-overlay" class="video-overlay">
       <div class="video-container">
-        <!-- Added allow="autoplay" and other permissions -->
-        <iframe id="video-iframe" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-        <div id="video-countdown" class="video-countdown"></div>
+        <!-- Native Video Element -->
+        <video id="video-element" controls playsinline disablepictureinpicture controlsList="nodownload"></video>
+        <!-- Removed Timer Countdown as we use native onEnded -->
       </div>
       <div class="video-controls">
         <button id="close-video-btn" class="close-video-btn">✅ Đã xem xong - Slide tiếp theo ⏩</button>
@@ -462,6 +457,30 @@
           this.loadAudio(index)
         ]);
       }
+
+      // MỚI: Tải Video MP4 vào Cache (Blob)
+      loadVideo(url) {
+        if (this.cache.has(url)) return this.cache.get(url);
+
+        console.log("[Video] Prefetching:", url);
+        const promise = fetch(url)
+          .then(res => {
+            if (!res.ok) throw new Error("Video load failed");
+            return res.blob();
+          })
+          .then(blob => {
+            const blobUrl = URL.createObjectURL(blob);
+            this.blobs.set(url, blobUrl); // Store for retrieval
+            return blobUrl;
+          })
+          .catch(err => {
+            console.warn("[Video] Prefetch failed:", err);
+            return url; // Fallback to original URL on error
+          });
+
+        this.cache.set(url, promise);
+        return promise;
+      }
     }
 
     /* ==================== BIẾN TOÀN CỤC ==================== */
@@ -475,9 +494,8 @@
 
     // Video Elements
     const videoOverlay = document.getElementById('video-overlay');
-    const videoIframe = document.getElementById('video-iframe');
+    const videoElement = document.getElementById('video-element'); // Changed from iframe
     const closeVideoBtn = document.getElementById('close-video-btn');
-    const videoCountdown = document.getElementById('video-countdown');
     const videoMap = new Map();
 
     const autoscrollBtn = document.getElementById('autoscroll-btn');
@@ -512,27 +530,28 @@
     const FALLBACK_VIDEO_DATA = `
 Slide 2: 
 Winning the Zero Moment of Truth - Changing the Rulebook_vi
-https://drive.google.com/file/d/1_JRpzGeHDgZy1UaCZcXjkIq33YMAq2bD/view?usp=sharing
+https://mymedia.donga.edu.vn/f/2A__Winning_the_Zero_Moment_of_Truth_-_Changing_the_Rulebook_vi_1767723471.mp4
 Duration: 2:05
 
 Slide 8:
 Omni-Channel vs. Multi-Channel
-https://drive.google.com/file/d/1bySV7fYfvzriFyh1jK0zbRqbzro9YBjC/view?usp=drive_link
+https://mymedia.donga.edu.vn/f/Omni-Channel_vs__Multi-Channel_vi_1767723485.mp4
 Duration: 1:49
 
 Slide 16:
 Push Strategy vs Pull Strategy
-https://drive.google.com/file/d/1B_lzX69T0MR-wU4PZ2idNWi1gmK0P4GJ/view?usp=drive_link
+https://mymedia.donga.edu.vn/f/Push_Strategy_vs_Pull_Strategy_vi_1767723500.mp4
 Duration: 3:00
 
 Slide 19:
 Learn how the Just Walk Out technology experience works
-https://drive.google.com/file/d/1kF-aL0RIeFNyURWk7QkCaTOTwvnRcLDX/view?usp=drive_link
+https://mymedia.donga.edu.vn/f/Learn_how_the_Just_Walk_Out_technology_experience_works_vi_1767723513.mp4
 Duration: 3:34
     `;
 
     function parseVideoData(text) {
       const lines = text.split('\n');
+      /* ... skipped unchanged regex logic ... */
       let currentSlide = null;
 
       lines.forEach(line => {
@@ -543,7 +562,6 @@ Duration: 3:34
         const slideMatch = line.match(/^Slide\s+(\d+)[:\s]*/i);
         if (slideMatch) {
           currentSlide = parseInt(slideMatch[1]);
-          // Initialize/Reset
           if (!videoMap.has(currentSlide)) {
             videoMap.set(currentSlide, { url: '', duration: 0, title: '' });
           }
@@ -551,13 +569,17 @@ Duration: 3:34
         else if (currentSlide !== null) {
           if (line.startsWith('http')) {
             let url = line;
+            // MP4 Links: Direct use
+            // Drive Links: Keep existing conversion logic just in case
             if (url.includes('drive.google.com') && url.includes('/view')) {
               url = url.replace('/view', '/preview');
             }
             const data = videoMap.get(currentSlide);
             if (data) data.url = url;
           }
+          // ... duration logic remains same
           else if (line.match(/^Duration[:\s]+/i)) {
+            /* ... */
             const data = videoMap.get(currentSlide);
             if (data) {
               // Try "1:58"
@@ -567,7 +589,6 @@ Duration: 3:34
                 const s = parseInt(timeMatch[2]);
                 data.duration = m * 60 + s;
               } else {
-                // Try "118"
                 const secMatch = line.match(/Duration[:\s]+(\d+)/i);
                 if (secMatch) {
                   data.duration = parseInt(secMatch[1]);
@@ -576,7 +597,7 @@ Duration: 3:34
             }
           }
           else {
-            // Treat other lines as potential title if not yet set
+            /* ... title logic ... */
             const data = videoMap.get(currentSlide);
             if (data && !data.title && !line.startsWith('Duration')) {
               data.title = line;
@@ -601,62 +622,47 @@ Duration: 3:34
 
     let videoTimer = null;
 
-    function playVideo(videoData) {
+    async function playVideo(videoData) {
       let url = videoData.url;
-      const duration = videoData.duration;
+      console.log("Preparing Video:", url);
 
-      console.log("Playing Video:", url, "Duration:", duration);
-
-      // Auto-append params
-      try {
-        const urlObj = new URL(url);
-        if (urlObj.hostname.includes('drive.google.com') && urlObj.pathname.includes('/view')) {
-          urlObj.pathname = urlObj.pathname.replace('/view', '/preview');
-        }
-        urlObj.searchParams.set('autoplay', '1');
-        url = urlObj.toString();
-      } catch (e) {
-        if (url.includes('drive.google.com') && url.includes('/view')) {
-          url = url.replace('/view', '/preview');
-        }
-        if (url.includes('?')) url += '&autoplay=1';
-        else url += '?autoplay=1';
+      // Check Cache First
+      if (resourceManager.blobs.has(url)) {
+        console.log("🚀 Using Cached MP4 Blob!");
+        url = resourceManager.blobs.get(url);
+      } else if (resourceManager.cache.has(url)) {
+        // Waiting for pending fetch
+        try {
+          console.log("⏳ Waiting for pending download...");
+          url = await resourceManager.cache.get(url);
+        } catch (e) { /* Error handled in cached promise */ }
       }
 
-      videoIframe.src = url;
+      videoElement.src = url;
       videoOverlay.classList.add('active');
 
       slideAudio.pause();
       cancelAnimationFrame(scrollAnimationId);
 
-      // TIMER LOGIC
-      if (duration > 0) {
-        // Clear existing if any
-        clearInterval(videoTimer);
-
-        let remaining = duration + 2; // Buffer 2s
-        videoCountdown.style.display = 'block';
-        videoCountdown.textContent = `Tự động chuyển sau: ${formatTime(remaining)}`;
-
-        videoTimer = setInterval(() => {
-          remaining--;
-          if (remaining <= 0) {
-            clearInterval(videoTimer);
-            console.log("Video Timer ended. Auto-advancing.");
-            closeVideo();
-          } else {
-            videoCountdown.textContent = `Tự động chuyển sau: ${formatTime(remaining)}`;
-          }
-        }, 1000);
-      } else {
-        videoCountdown.style.display = 'none';
+      // Play
+      try {
+        await videoElement.play();
+      } catch (e) {
+        console.warn("Auto-play failed:", e);
       }
+
+      // Native Auto-Advance
+      videoElement.onended = () => {
+        console.log("Video ended. Auto-advancing.");
+        closeVideo();
+      };
     }
 
     function closeVideo() {
-      clearInterval(videoTimer); // Stop timer if user clicks manually
       videoOverlay.classList.remove('active');
-      videoIframe.src = "about:blank"; // Reset iframe để tắt tiếng video
+      videoElement.pause();
+      videoElement.src = ""; // Stop buffering
+      videoElement.onended = null; // Cleanup listener
 
       // Chuyển slide tiếp theo
       if (currentSlideIndex < TOTAL_SLIDES) {
@@ -716,11 +722,20 @@ Duration: 3:34
     }
 
     function preloadNextSlides(currentIndex) {
-      // Preload 2 slide tiếp theo
+      // 1. Preload 2 slide tiếp theo (Ảnh + Audio)
       for (let i = 1; i <= 2; i++) {
         const nextIdx = currentIndex + i;
         if (nextIdx <= TOTAL_SLIDES) {
           resourceManager.loadSlide(nextIdx).catch(err => console.log(`Preload failed for ${nextIdx}`, err));
+        }
+      }
+
+      // 2. Preload Video (nếu có ở slide kế tiếp)
+      const nextSlideIndex = currentIndex + 1;
+      if (videoMap.has(nextSlideIndex)) {
+        const vidData = videoMap.get(nextSlideIndex);
+        if (vidData && vidData.url && vidData.url.endsWith('.mp4')) {
+          resourceManager.loadVideo(vidData.url);
         }
       }
     }
