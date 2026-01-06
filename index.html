@@ -273,7 +273,8 @@
     .video-controls {
       position: absolute;
       top: 20px;
-      right: 20px;
+      left: 20px;
+      /* Moved to Left to avoid conflicts */
       width: auto;
       height: auto;
       background: transparent;
@@ -281,6 +282,43 @@
       z-index: 20002;
       pointer-events: auto;
       /* Ensure clickable */
+    }
+
+    /* Manual Play Button for Mobile */
+    .video-play-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 20001;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .video-play-overlay.visible {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .big-play-btn {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9);
+      color: #000;
+      font-size: 40px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     }
 
     .close-video-btn {
@@ -319,7 +357,11 @@
       <div class="video-container">
         <!-- Native Video Element -->
         <video id="video-element" controls playsinline disablepictureinpicture controlsList="nodownload"></video>
-        <!-- Removed Timer Countdown as we use native onEnded -->
+
+        <!-- Manual Play Overlay -->
+        <div id="video-play-overlay" class="video-play-overlay">
+          <button id="big-play-btn" class="big-play-btn">▶</button>
+        </div>
       </div>
       <div class="video-controls">
         <button id="close-video-btn" class="close-video-btn">✅ Đã xem xong - Slide tiếp theo ⏩</button>
@@ -494,8 +536,10 @@
 
     // Video Elements
     const videoOverlay = document.getElementById('video-overlay');
-    const videoElement = document.getElementById('video-element'); // Changed from iframe
+    const videoElement = document.getElementById('video-element');
     const closeVideoBtn = document.getElementById('close-video-btn');
+    const videoPlayOverlay = document.getElementById('video-play-overlay');
+    const bigPlayBtn = document.getElementById('big-play-btn');
     const videoMap = new Map();
 
     const autoscrollBtn = document.getElementById('autoscroll-btn');
@@ -640,6 +684,7 @@ Duration: 3:34
 
       videoElement.src = url;
       videoOverlay.classList.add('active');
+      videoPlayOverlay.classList.remove('visible'); // Hide manual play button initially
 
       slideAudio.pause();
       cancelAnimationFrame(scrollAnimationId);
@@ -648,13 +693,19 @@ Duration: 3:34
       try {
         await videoElement.play();
       } catch (e) {
-        console.warn("Auto-play failed:", e);
+        console.warn("Auto-play failed (Mobile restrictions):", e);
+        // Show Manual Play Button
+        videoPlayOverlay.classList.add('visible');
       }
 
       // Native Auto-Advance
       videoElement.onended = () => {
         console.log("Video ended. Auto-advancing.");
         closeVideo();
+      };
+
+      videoElement.onplay = () => {
+        videoPlayOverlay.classList.remove('visible');
       };
     }
 
