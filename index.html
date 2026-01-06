@@ -148,8 +148,13 @@
 
     .controls {
       display: flex;
+      justify-content: center;
+      /* Center buttons */
       align-items: center;
-      gap: 6px;
+      gap: 4px;
+      /* Reduce gap slightly to squeeze them in */
+      width: 100%;
+      /* Ensure it spans full width to allow centering */
     }
 
     .controls button {
@@ -425,6 +430,7 @@
         this.blobs = new Map(); // Lưu trữ Blob URL nếu cần (nhưng ở đây ta preload qua Image/Audio obj)
         this.maxRetries = 5;
         this.retryDelay = 1500; // ms
+        this.isZalo = /Zalo/i.test(navigator.userAgent); // Detect Zalo Browser
       }
 
       // Tạo key duy nhất cho resource
@@ -518,6 +524,12 @@
 
       // MỚI: Tải Video MP4 vào Cache (Blob)
       loadVideo(url) {
+        // Zalo Fallback: Skip Blob, use Direct Stream to avoid errors
+        if (this.isZalo) {
+          console.log("[Video] Zalo detected. Skipping prefetch:", url);
+          return Promise.resolve(url);
+        }
+
         if (this.cache.has(url)) return this.cache.get(url);
 
         console.log("[Video] Prefetching:", url);
