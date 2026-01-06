@@ -719,11 +719,17 @@ Duration: 3:34
       cancelAnimationFrame(scrollAnimationId);
 
       // Setup Manual Play Interaction
-      const triggerPlay = async () => {
+      const triggerPlay = async (e) => {
+        // Fail-safe: Hide overlay IMMEDIATELY so user can access native controls if script fails
+        videoPlayOverlay.classList.remove('visible');
+
+        if (e && e.stopPropagation) e.stopPropagation();
+
         try {
           await videoElement.play();
-          videoPlayOverlay.classList.remove('visible');
-        } catch (e) { console.error("Play failed", e); }
+        } catch (e) {
+          console.error("Play failed (User can now use native controls)", e);
+        }
       };
 
       videoPlayOverlay.onclick = triggerPlay;
